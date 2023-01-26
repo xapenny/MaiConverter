@@ -41,14 +41,57 @@ _ignored_v1 = [
     "TTM_SCR_SS",
     "TTM_RAT_ACV",
 ]
-
+_ignored_v2 = [
+    "VERSION",
+    "FES_MODE",
+    "BPM_DEF",
+    "MET_DEF",
+    "CLK_DEF",
+    "CLK",
+    "COMPATIBLE_CODE",
+    "T_REC_TAP",
+    "T_REC_BRK",
+    "T_REC_XTP",
+    "T_REC_HLD",
+    "T_REC_XHO",
+    "T_REC_STR",
+    "T_REC_BST",
+    "T_REC_XST",
+    "T_REC_TTP",
+    "T_REC_THO",
+    "T_REC_SLD",
+    "T_REC_ALL",
+    "T_NUM_TAP",
+    "T_NUM_BRK",
+    "T_NUM_HLD",
+    "T_NUM_SLD",
+    "T_NUM_ALL",
+    "T_JUDGE_TAP",
+    "T_JUDGE_HLD",
+    "T_JUDGE_SLD",
+    "T_JUDGE_ALL",
+    "TTM_EACHPAIRS",
+    "TTM_SCR_TAP",
+    "TTM_SCR_BRK",
+    "TTM_SCR_HLD",
+    "TTM_SCR_SLD",
+    "TTM_SCR_ALL",
+    "TTM_SCR_S",
+    "TTM_SCR_SS",
+    "TTM_RAT_ACV",
+    "T_REC_BXX",
+    "T_REC_BHO",
+    "T_REC_BXH",
+    "T_REC_XBS",
+    "T_REC_BSL"
+]
 
 def parse_v1(ma2, values: List[str]) -> None:
     """Ma2 line parser for versions 1.02.00 and 1.03.00 currently."""
     # For notes and events, the first value is a 3-character text
     line_type = values[0]
     # Create a list of all valid ma2 note and slide types
-    if line_type in _ignored_v1:
+    if line_type in _ignored_v2:
         # Ignore some parts of the header and all summary statistics lines
         return
     if line_type == "RESOLUTION":
