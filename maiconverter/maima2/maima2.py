@@ -106,11 +106,20 @@ class MaiMa2:
         # Ma2 notes are tab-separated so we make a list called values that contains all the info
         values = line.rstrip().split("\t")
         line_type = values[0]
+        # Festival compatibility fix
+        if values[0][:2] in ['NM', 'CN']:
+            values[0] = values[0][2:]
+        elif values[0] == 'EXTAP':
+            values[0] = 'XTP'
+        elif values[0] in ['BRTAP', 'BXTAP']:
+            values[0] = 'BRK'
+        elif values[0] in ['BRSCL', 'BRSI_', 'EXSTR', "BRSCR", "BRSTR", "BXSTR", "BRSSR", "BXHLD", "EXHLD", "BRHLD", "BRSLL"]:
+            values[0] = values[0][2:]
         if line_type == "VERSION":
             self.version = (values[1], values[2])
         elif line_type == "FES_MODE":
             self.fes_mode = values[1] == "1"
-        elif self.version[1] in ["1.02.00", "1.03.00"]:
+        elif self.version[1] in ["1.02.00", "1.03.00", "1.04.00"]:
             parse_v1(self, values)
         else:
             raise ValueError(f"Unknown Ma2 version: {self.version}")
