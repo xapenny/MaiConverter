@@ -43,6 +43,7 @@ _ignored_v1 = [
 ]
 
 
+
 def parse_v1(ma2, values: List[str]) -> None:
     """Ma2 line parser for versions 1.02.00 and 1.03.00 currently."""
     # For notes and events, the first value is a 3-character text
@@ -70,6 +71,38 @@ def parse_v1(ma2, values: List[str]) -> None:
     else:
         print(f"Warning: Ignoring unknown line type {line_type}")
 
+def parse_v2(ma2, values: List[str]) -> None:
+    """Ma2 line parser for versions 1.04.00 currently."""
+    # For notes and events, the first value is a 3-character text
+    line_type = values[0]
+    # print(values)
+    # Create a list of all valid ma2 note and slide types
+    if line_type in _ignored_v2:
+        # Ignore some parts of the header and all summary statistics lines
+        return
+    if line_type == "RESOLUTION":
+        # Set the max number of ticks in a measure
+        ma2._resolution = int(values[1])
+    elif line_type == "BPM":
+        # Set the BPM for a measure
+        measure = float(values[1]) + float(values[2]) / ma2.resolution
+        bpm = float(values[3])
+        ma2.set_bpm(measure, bpm)
+    elif line_type == "MET":
+        # Set MET event
+        measure = float(values[1]) + float(values[2]) / ma2.resolution
+        ma2.set_meter(measure, int(values[3]), int(values[4]))
+    elif line_type in list(note_dict.keys()):
+        if line_type in ["NMTAP", "BRTAP", "EXTAP", "BXTAP", "NMSTR", "BRSTR", "EXSTR", "BXSTR", "BRHLD", "BXHLD", "EXHLD"]:
+            print(f'Warning: FESTiVAL style Note detected {line_type}')
+        _handle_notes_v2(ma2, values)
+    elif line_type in list(slide_dict.keys()):
+        _handle_slides_v1(ma2, values)
+    elif  line_type[2:] in list(slide_dict.keys()):
+        print(f'Warning: FESTiVAL style Slide detected {line_type}')
+        _handle_slides_v1(ma2, values)
+    else:
+        print(f"Warning: Ignoring unknown line type {line_type}")
 
 def _handle_notes_v1(ma2, values: List[str]) -> None:
     line_type = values[0]
@@ -96,13 +129,45 @@ def _handle_notes_v1(ma2, values: List[str]) -> None:
         size = values[7] if len(values) > 7 else "M1"
         ma2.add_touch_hold(measure, position, region, duration, is_firework, size)
 
+def _handle_notes_v2(ma2, values: List[str]) -> None:
+    line_type = values[0]
+    measure = float(values[1]) + float(values[2]) / ma2.resolution
+    position = int(values[3])
+    if line_type in ["TAP", "BRK", "XTP", "STR", "BST", "XST", 
+        "NMTAP", "BRTAP", "EXTAP", "BXTAP", "NMSTR", "BRSTR", "EXSTR", "BXSTR"]:
+        is_break = line_type in ["BRK", "BST", "BRTAP", "BXTAP", "BRSTR", "BXSTR"]
+        is_ex = line_type in ["XTP", "XST", "EXTAP", "BXTAP", "EXSTR", "BXSTR"]
+        is_star = line_type in ["STR", "BST", "XST", "NMSTR", "BRSTR", "EXSTR", "BXSTR"]
+        ma2.add_tap(measure, position, is_break, is_star, is_ex)
+    elif line_type in ["XHO", "HLD", "BRHLD", "BXHLD", "EXHLD"]:
+        is_ex = line_type in ["XHO", "EXHLD", "BXHLD"]
+        is_break = line_type in ['BRHLD', 'BXHLD']
+        duration = float(values[4]) / ma2.resolution
+        ma2.add_hold(measure, position, duration, is_ex)
+    elif line_type == "TTP":
+        region = values[4]
+        is_firework = values[5] == "1"
+        size = values[6] if len(values) > 6 else "M1"
+        ma2.add_touch_tap(measure, position, region, is_firework, size)
+    elif line_type == "THO":
+        duration = float(values[4]) / ma2.resolution
+        region = values[5]
+        is_firework = values[6] == "1"
+        size = values[7] if len(values) > 7 else "M1"
+        ma2.add_touch_hold(measure, position, region, duration, is_firework, size)
+
 
 def _handle_slides_v1(ma2, values: List[str]) -> None:
     line_type = values[0]
+    if line_type[:2] in ['BX', 'BR']:
+        break_slide = True
+        line_type = line_type[2:]
+    else:
+        break_slide = False
     pattern = slide_dict[line_type]
     measure = float(values[1]) + float(values[2]) / ma2.resolution
     start_position = int(values[3])
     delay = int(values[4]) / ma2.resolution
     duration = int(values[5]) / ma2.resolution
     end_position = int(values[6])
-    ma2.add_slide(measure, start_position, end_position, duration, pattern, delay)
+    ma2.add_slide(measure, start_position, end_position, duration, pattern, delay, is_break=break_slide)

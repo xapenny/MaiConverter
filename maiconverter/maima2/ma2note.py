@@ -18,6 +18,15 @@ note_dict = {
     "XHO": 8,
     "TTP": 9,
     "THO": 10,
+    "BRSTR": 5,
+    "EXSTR": 7,
+    "BXSTR": 14,
+    "BRHLD": 16,
+    "EXHLD": 8,
+    "BXHLD": 13,
+    "BRTAP": 3,
+    "EXTAP": 6,
+    "BXTAP": 12,
     # "SLD": 11
 }
 
@@ -47,7 +56,7 @@ class SlideNote(MaiNote):
         end_position: int,
         pattern: int,
         duration: float,
-        delay: float = 0.25,
+        delay: float = 0.25, is_break: bool = False
     ) -> None:
         """Produces a ma2 slide note.
 
@@ -82,6 +91,7 @@ class SlideNote(MaiNote):
         self.pattern = pattern
         self.delay = delay
         self.duration = duration
+        self.is_break = is_break
 
     def to_str(self, resolution: int = 384) -> str:
         measure = measure_to_ma2_time(self.measure, resolution)
@@ -166,16 +176,25 @@ class TapNote(MaiNote):
         """
 
         if is_ex and is_star:
-            super().__init__(measure, position, NoteType.ex_star)
+            if is_break:
+                super().__init__(measure, position, NoteType.break_star_ex)
+            else:
+                super().__init__(measure, position, NoteType.ex_star)
         elif is_ex and not is_star:
-            super().__init__(measure, position, NoteType.ex_tap)
+            if is_break:
+                super().__init__(measure, position, NoteType.break_tap_ex)
+            else:
+                super().__init__(measure, position, NoteType.ex_tap)
         elif is_star and is_break:
-            super().__init__(measure, position, NoteType.break_star)
+            if is_ex:
+                super().__init__(measure, position, NoteType.break_star_ex)
+            else:
+                super().__init__(measure, position, NoteType.break_star)
         elif is_star and not is_break:
             super().__init__(measure, position, NoteType.star)
-        elif not is_star and is_break:
+        elif is_break:
             super().__init__(measure, position, NoteType.break_tap)
-        elif not is_star and not is_break:
+        else:
             super().__init__(measure, position, NoteType.tap)
 
     def to_str(self, resolution: int) -> str:
@@ -383,7 +402,7 @@ class Meter(Event):
         else:
             measure = measure_to_ma2_time(self.measure, resolution)
 
-        template = "MET\t{}\t{}\t{}\t{}"
+        template = "\nMET\t{}\t{}\t{}\t{}"
         return template.format(measure[0], measure[1], self.numerator, self.denominator)
 
 
@@ -452,7 +471,6 @@ def check_slide(pattern: int, start_position: int, end_position: int):
 
     distance_cw = slide_distance(start_position, end_position, is_cw=True)
     distance_ccw = slide_distance(start_position, end_position, is_cw=False)
-
     if pattern == 1:
         if not (distance_cw > 1 and distance_ccw > 1):
             raise ValueError(
@@ -474,5 +492,5 @@ def check_slide(pattern: int, start_position: int, end_position: int):
     elif pattern == 12:
         if not 0 < distance_ccw < 5:
             raise ValueError(
-                "Counter-clockwise distance must be between 0 and 5 in SLR."
+                f"Counter-clockwise distance must be between 0 and 5 in SLR. Start:{start_position}, End:{end_position}"
             )

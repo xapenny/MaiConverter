@@ -14,7 +14,7 @@ from .ma2note import (
     Meter,
     check_slide,
 )
-from .tools import parse_v1
+from .tools import parse_v1, parse_v2
 from maiconverter.event import NoteType
 from maiconverter.tool import (
     second_to_measure,
@@ -106,12 +106,19 @@ class MaiMa2:
         # Ma2 notes are tab-separated so we make a list called values that contains all the info
         values = line.rstrip().split("\t")
         line_type = values[0]
+        # Festival compatibility fix
+        if values[0][:2] in ['NM', 'CN']:
+            values[0] = values[0][2:]
+        elif values[0] == 'EXTAP':
+            values[0] = 'XTP'
         if line_type == "VERSION":
             self.version = (values[1], values[2])
         elif line_type == "FES_MODE":
             self.fes_mode = values[1] == "1"
         elif self.version[1] in ["1.02.00", "1.03.00"]:
             parse_v1(self, values)
+        elif self.version[1] == "1.04.00":
+            parse_v2(self, values)
         else:
             raise ValueError(f"Unknown Ma2 version: {self.version}")
 
@@ -464,7 +471,7 @@ class MaiMa2:
         duration: float,
         pattern: int,
         delay: float = 0.25,
-        slide_check: bool = True,
+        slide_check: bool = True, is_break: bool = False
     ) -> MaiMa2:
         """Adds a slide note to the list of notes.
 
@@ -493,14 +500,13 @@ class MaiMa2:
         """
         if slide_check:
             check_slide(pattern, start_position, end_position)
-
         slide_note = SlideNote(
             measure,
             start_position,
             end_position,
             pattern,
             duration,
-            delay,
+            delay, is_break
         )
         self.notes_stat["SLD"] += 1
         self.notes.append(slide_note)
@@ -827,9 +833,9 @@ class MaiMa2:
 
         # BPM and meters
         self.bpms.sort(key=lambda x: x.measure)
-        result += "\n".join([bpm.to_str(resolution) for bpm in self.bpms]) + "\n"
+        result += "\n".join([bpm.to_str(resolution) for bpm in self.bpms])
         self.meters.sort(key=lambda x: x.measure)
-        result += "\n".join([meter.to_str(resolution) for meter in self.meters]) + "\n"
+        result += "\n".join([meter.to_str(resolution) for meter in self.meters])
         result += "\n"
 
         self.notes.sort()

@@ -46,11 +46,20 @@ class TapNote(SimaiNote):
     ) -> None:
         measure = round(100000.0 * measure) / 100000.0
         if is_ex and is_star:
-            super().__init__(measure, position, NoteType.ex_star)
+            if is_break:
+                super().__init__(measure, position, NoteType.break_star_ex)
+            else:
+                super().__init__(measure, position, NoteType.ex_star)
         elif is_ex and not is_star:
-            super().__init__(measure, position, NoteType.ex_tap)
+            if is_break:
+                super().__init__(measure, position, NoteType.break_tap_ex)
+            else:
+                super().__init__(measure, position, NoteType.ex_tap)
         elif is_star and is_break:
-            super().__init__(measure, position, NoteType.break_star)
+            if is_ex:
+                super().__init__(measure, position, NoteType.break_star_ex)
+            else:
+                super().__init__(measure, position, NoteType.break_star)
         elif is_star and not is_break:
             super().__init__(measure, position, NoteType.star)
         elif is_break:
@@ -61,7 +70,7 @@ class TapNote(SimaiNote):
 
 class HoldNote(SimaiNote):
     def __init__(
-        self, measure: float, position: int, duration: float, is_ex: bool = False
+        self, measure: float, position: int, duration: float, is_ex: bool = False, is_break: bool = False
     ) -> None:
         if duration < 0:
             raise ValueError(f"Hold duration is negative: {duration}")
@@ -69,9 +78,15 @@ class HoldNote(SimaiNote):
         measure = round(100000.0 * measure) / 100000.0
         duration = round(100000.0 * duration) / 100000.0
         if is_ex:
-            super().__init__(measure, position, NoteType.ex_hold)
+            if is_break:
+                super().__init__(measure, position, NoteType.break_hold_ex)
+            else:
+                super().__init__(measure, position, NoteType.break_hold)
         else:
-            super().__init__(measure, position, NoteType.hold)
+            if is_break:
+                super().__init__(measure, position, NoteType.break_hold)
+            else:
+                super().__init__(measure, position, NoteType.hold)
 
         self.duration = duration
 
@@ -85,7 +100,7 @@ class SlideNote(SimaiNote):
         duration: float,
         pattern: str,
         delay: float = 0.25,
-        reflect_position: Optional[int] = None,
+        reflect_position: Optional[int] = None, is_break: bool = False,
     ) -> None:
         """Produces a simai slide note.
 
@@ -127,6 +142,7 @@ class SlideNote(SimaiNote):
         self.pattern = pattern
         self.delay = delay
         self.reflect_position = reflect_position
+        self.is_break = is_break
 
 
 class TouchTapNote(SimaiNote):

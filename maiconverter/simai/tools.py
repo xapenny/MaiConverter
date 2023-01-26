@@ -114,20 +114,24 @@ def get_measure_divisor(measures: List[float], max_den: int = 1000) -> Optional[
 def handle_tap(tap: TapNote, slides: List[SlideNote], counter: int) -> Tuple[str, int]:
     result = ""
     note_type = tap.note_type
-    if note_type in [NoteType.tap, NoteType.break_tap, NoteType.ex_tap]:
+    if note_type in [NoteType.tap, NoteType.break_tap, NoteType.ex_tap, NoteType.break_tap_ex]:
         # Regular, break, and ex tap note
+        
         if note_type == NoteType.break_tap:
             modifier_string = "b"
         elif note_type == NoteType.ex_tap:
             modifier_string = "x"
+        elif note_type == NoteType.break_tap_ex:
+            modifier_string = "bx"
         else:
             modifier_string = ""
+
 
         if counter > 0:
             result += "/"
 
         result += "{}{}".format(tap.position + 1, modifier_string)
-    elif note_type in [NoteType.star, NoteType.break_star, NoteType.ex_star]:
+    elif note_type in [NoteType.star, NoteType.break_star, NoteType.ex_star, NoteType.break_star_ex]:
         produced_slides = [slide for slide in slides if slide.position == tap.position]
         if len(produced_slides) > 0:
             return "", counter
@@ -137,6 +141,8 @@ def handle_tap(tap: TapNote, slides: List[SlideNote], counter: int) -> Tuple[str
             modifier_string = "b$"
         elif note_type == NoteType.ex_star:
             modifier_string = "x$"
+        elif note_type == NoteType.break_star_ex:
+            modifier_string = "bx$"
         else:
             modifier_string = "$"
 
@@ -151,8 +157,13 @@ def handle_tap(tap: TapNote, slides: List[SlideNote], counter: int) -> Tuple[str
 def handle_hold(hold: HoldNote, counter: int, max_den: int = 1000) -> Tuple[str, int]:
     result = ""
     frac = Fraction(hold.duration).limit_denominator(max_den * 2)
+    modifier_string = "h"
     if hold.note_type == NoteType.ex_hold:
-        modifier_string = "hx"
+        modifier_string = "xh"
+    elif hold.note_type == NoteType.break_hold:
+        modifier_string = "bh"
+    elif hold.note_type == NoteType.break_hold_ex:
+        modifier_string = "bxh"
     else:
         modifier_string = "h"
 
@@ -250,7 +261,7 @@ def handle_slide(
         equivalent_bpm = round(bpm * scale * 10000.0) / 10000.0
         equivalent_duration = slide.duration * scale
         frac = Fraction(equivalent_duration).limit_denominator(max_den * 10)
-        result += "{}{}{}{}[{:.2f}#{}:{}]".format(
+        result += "{}{}{}{}[{:.2f}#{}:{}]{}".format(
             start_position,
             modifier_string,
             pattern,
@@ -258,16 +269,18 @@ def handle_slide(
             equivalent_bpm,
             frac.denominator,
             frac.numerator,
+            'b' if slide.is_break else ''
         )
     else:
         frac = Fraction(slide.duration).limit_denominator(max_den * 10)
-        result += "{}{}{}{}[{}:{}]".format(
+        result += "{}{}{}{}[{}:{}]{}".format(
             start_position,
             modifier_string,
             pattern,
             slide.end_position + 1,
             frac.denominator,
             frac.numerator,
+            'b' if slide.is_break else ''
         )
 
     if slide.position not in positions:

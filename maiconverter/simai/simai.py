@@ -293,7 +293,7 @@ class SimaiChart:
         measure: float,
         position: int,
         duration: float,
-        is_ex: bool = False,
+        is_ex: bool = False, is_break: bool = False
     ) -> SimaiChart:
         """Adds a hold note to the list of notes.
 
@@ -312,7 +312,7 @@ class SimaiChart:
             >>> simai.add_hold(1, 2, 5)
             >>> simai.add_hold(3, 6, 0.5, is_ex=True)
         """
-        hold_note = HoldNote(measure, position, duration, is_ex)
+        hold_note = HoldNote(measure, position, duration, is_ex, is_break)
         self.notes.append(hold_note)
 
         return self
@@ -353,7 +353,7 @@ class SimaiChart:
         duration: float,
         pattern: str,
         delay: float = 0.25,
-        reflect_position: Optional[int] = None,
+        reflect_position: Optional[int] = None, is_break: bool = False
     ) -> SimaiChart:
         """Adds both a slide note to the list of notes.
 
@@ -385,7 +385,7 @@ class SimaiChart:
             duration,
             pattern,
             delay,
-            reflect_position,
+            reflect_position, is_break
         )
         self.notes.append(slide_note)
 
@@ -596,7 +596,7 @@ class SimaiChart:
         measures = [event.measure for event in self.notes + self.bpms]
 
         measures += [int(i) for i in measures]
-        measures.append(1.0)
+        measures.append(0.0)
 
         measures = list(set(measures))
         last_whole_measure = max([int(measure) for measure in measures])
@@ -614,10 +614,10 @@ class SimaiChart:
             whole_divisors.append(get_measure_divisor(note_measures))
 
         # last_measure takes into account slide and hold notes' end measure
-        last_measure = 1.0
+        last_measure = 0.0
         # measure_tick is our time-tracking variable. Used to know what measure
         # are we in-between rests ","
-        measure_tick = 1.0
+        measure_tick = 0.0
         # previous_divisor is used for comparing to current_divisor
         # to know if we should add a "{}" indicator
         previous_divisor: Optional[int] = None
@@ -636,6 +636,8 @@ class SimaiChart:
                 if note.note_type
                 in [
                     NoteType.hold,
+                    NoteType.break_hold,
+                    NoteType.break_hold_ex,
                     NoteType.ex_hold,
                     NoteType.touch_hold,
                     NoteType.complete_slide,
